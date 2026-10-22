@@ -1,0 +1,6 @@
+# Local environment (LLM evaluation + tests). Databricks notebooks use the
+# libraries already on Databricks serverless compute.
+anthropic>=2.1
+pandas>=2.0
+scikit-learn>=1.3
+pytest>=8.0
