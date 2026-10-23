@@ -42,6 +42,7 @@ def test_data_dictionary_markdown_lists_every_table():
     ("Credit reporting or other personal consumer reports", "credit_reporting"),
     ("Credit reporting", "credit_reporting"),
     ("Debt collection", "debt_collection"),
+    ("Debt or credit management", "debt_management"),
     ("Credit card or prepaid card", "credit_card"),
     ("Credit card", "credit_card"),
     ("Prepaid card", "prepaid_card"),
