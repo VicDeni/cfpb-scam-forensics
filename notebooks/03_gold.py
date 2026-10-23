@@ -4,6 +4,9 @@
 # MAGIC * `gold_model_dataset`: complaints with a narrative and a usable label, split **by time**.
 # MAGIC   The newest months are the test set, so models are scored on complaints from after
 # MAGIC   everything they were trained on (no leakage from the future).
+# MAGIC * The CFPB published narratives weeks after a complaint arrived, then stopped publishing in
+# MAGIC   August 2026, so the last months in the data have few or no narratives. Months with under
+# MAGIC   25% of the peak month's narrative count are treated as incomplete and left out of modeling.
 # MAGIC * `gold_complaint_trends` and `gold_top_companies` feed the dashboard.
 # MAGIC * Writes the data dictionary into Unity Catalog as table and column comments.
 # MAGIC   Open any table in **Catalog Explorer** to see them. If your workspace shows a **Lineage**
@@ -38,15 +41,21 @@ from complaint_kit.labels import LABELS, UNMAPPED
 silver = spark.table(T("silver_complaints")).withColumn(
     "month", F.trunc("date_received", "month")
 )
-last_month = silver.agg(F.max("month")).first()[0]
+narratives_by_month = silver.filter("has_narrative").groupBy("month").count().orderBy("month")
+display(narratives_by_month)
+peak = narratives_by_month.agg(F.max("count")).first()[0]
+last_month = (narratives_by_month.filter(F.col("count") >= 0.25 * peak)
+              .agg(F.max("month")).first()[0])
 test_start = spark.sql(f"SELECT add_months(DATE'{last_month}', {1 - TEST_MONTHS})").first()[0]
-print(f"Latest month: {last_month}. Test set: {test_start} onward.")
+print(f"Last month with complete narratives: {last_month}. "
+      f"Test set: {test_start} to {last_month}; later months are left out of modeling.")
 
 # COMMAND ----------
 
 model_ds = (silver
             .filter(F.col("has_narrative") & F.col("product_label").isin(list(LABELS)))
             .filter(F.length("narrative_clean") >= 30)
+            .filter(F.col("month") <= F.lit(last_month))
             .withColumn("split", F.when(F.col("month") >= F.lit(test_start), "test")
                         .otherwise("train"))
             .select("complaint_id", "date_received", "product_label", "narrative_clean", "split"))
