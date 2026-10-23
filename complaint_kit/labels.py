@@ -9,9 +9,11 @@ import re
 
 LABELS = {
     "credit_reporting": "Credit reports: errors, disputes, identity theft on a "
-    "report, credit monitoring or credit repair services",
+    "report, or credit monitoring",
     "debt_collection": "Debt collectors: attempts to collect a debt, "
     "communication tactics, debt not owed, threats",
+    "debt_management": "Debt settlement, credit repair, student loan debt relief, or "
+    "mortgage modification companies: fees, misleading promises, services not provided",
     "credit_card": "Credit card accounts: billing disputes, fees, interest, "
     "rewards, card fraud, card applications",
     "checking_savings": "Checking or savings accounts: deposits, withdrawals, "
@@ -34,6 +36,8 @@ UNMAPPED = "UNMAPPED"  # unknown category: add a rule below
 RULES = [
     (r"credit reporting|credit repair", "credit_reporting"),
     (r"^debt collection", "debt_collection"),
+    # Product added August 2023; credit repair services moved here from credit reporting.
+    (r"^debt or credit management", "debt_management"),
     # 2017-2022 category merged cards and prepaid; credit cards dominate it.
     (r"^credit card or prepaid card$", "credit_card"),
     (r"^credit card$", "credit_card"),
