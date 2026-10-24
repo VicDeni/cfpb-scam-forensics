@@ -126,6 +126,8 @@ Files you download from **raw_files → exports** go in `data/`; files you uploa
 1. Run `04_baseline_model`; download `eval_sample.csv` and `few_shot_examples.csv`.
 2. `python scripts/run_llm_eval.py --dry-run`, then `--limit 50`, then the full run.
 3. Upload `results/llm_results.jsonl`; run `05_compare_results`.
+4. To improve the prompt, run `04b_prompt_practice_set` and iterate on `dev_sample.csv` (see PLAN.md),
+   then score only the final prompt on `eval_sample.csv`.
 
 ### Part 2: scam forensics
 1. Run `06_scam_candidates`; download `scam_extract_input.csv` and `scam_label_sheet.csv`.
@@ -144,7 +146,7 @@ should cost around $1. Each script's `--dry-run` prints an estimate.
 
 ```
 complaint_kit/     core logic: labels, PII/text cleaning, prompts, scam schema + scoring, Claude client, metrics
-notebooks/         Databricks notebooks 00–07
+notebooks/         Databricks notebooks 00–07 (plus 04b, the prompt practice set)
 scripts/           run_llm_eval.py, run_scam_extraction.py, score_scam_labels.py
 dashboard/         SQL for the AI/BI dashboard
 docs/              data dictionary and labeling guide (generated from complaint_kit)

@@ -266,3 +266,53 @@ def test_classify_with_thinking_turns_it_on():
     llm.classify(client, "sys", "user", thinking=True, max_tokens=4000)
     call = client.messages.calls[0]
     assert call["thinking"] == {"type": "adaptive"} and call["max_tokens"] == 4000
+
+
+# ---------- prompt version 2 (routing rules) ----------
+
+def test_original_prompts_unchanged_by_rules_option():
+    # Results already recorded under this version must stay comparable.
+    zero = prompts.build_system_prompt()
+    assert prompts.prompt_version("zero_shot", zero) == "zero_shot-639475c4"
+    assert prompts.ROUTING_RULES not in zero
+
+
+def test_rules_prompt_adds_rules_before_examples():
+    ex = [{"label": "mortgage", "text": "My escrow went up."}]
+    system = prompts.build_system_prompt(ex, rules=True)
+    assert prompts.ROUTING_RULES in system
+    assert system.index("How to choose") < system.index("Examples:") < system.index("Reply with JSON")
+
+
+def test_eval_script_builds_all_variants(tmp_path):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import run_llm_eval
+
+    examples = tmp_path / "ex.csv"
+    pd.DataFrame([{"complaint_id": 1, "label": "mortgage", "text": "Escrow."}]).to_csv(examples, index=False)
+    variants = run_llm_eval.build_variants(run_llm_eval.VARIANTS, examples)
+    assert "Examples:" not in variants["zero_shot"]["system"]
+    assert "How to choose" in variants["zero_shot_rules"]["system"]
+    assert "Examples:" in variants["few_shot_rules"]["system"]
+    assert len({v["version"] for v in variants.values()}) == 4
+
+
+def test_pick_examples_saves_choices_and_skips(tmp_path):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import pick_examples
+
+    cands = tmp_path / "cands.csv"
+    pd.DataFrame({
+        "complaint_id": [1, 2, 3, 4],
+        "label": ["mortgage", "mortgage", "student_loan", "student_loan"],
+        "text": ["escrow one", "escrow two", "loan one", "loan two"],
+    }).to_csv(cands, index=False)
+    out = tmp_path / "curated.csv"
+    answers = iter(["9", "2", "s"])  # invalid, then pick #2 for mortgage, skip student_loan
+    pick_examples.main(["--candidates", str(cands), "--out", str(out)], input_fn=lambda _: next(answers))
+    saved = pd.read_csv(out)
+    assert saved.to_dict("records") == [{"complaint_id": 2, "label": "mortgage", "text": "escrow two"}]

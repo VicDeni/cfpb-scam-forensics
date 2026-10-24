@@ -18,6 +18,16 @@ choice, and the README's "Design choices" section is your cheat sheet.
 - [ ] Local setup, `pytest`, API key. Download the two export files into `data/`.
 - [ ] `run_llm_eval.py --dry-run`, `--limit 50`, full run. Upload results, run `05_compare_results`.
 - [ ] Skim `gold_error_examples` and write two sentences on what the models get wrong.
+- [ ] Improve the prompt **on the practice set, not the evaluation set**: run `04b_prompt_practice_set`,
+      download `dev_sample.csv` and `example_candidates.csv` into `data/`, and save one clear
+      complaint per product from the candidates as `data/few_shot_curated.csv`.
+- [ ] Compare all four variants on the practice set (about $0.60):
+      `python scripts/run_llm_eval.py --eval-file data/dev_sample.csv --out results/dev_results.jsonl
+      --examples-file data/few_shot_curated.csv --variants zero_shot zero_shot_rules few_shot few_shot_rules`
+- [ ] Edit `ROUTING_RULES` in `complaint_kit/prompts.py` based on the practice-set mistakes and rerun
+      (each edit creates a new prompt version automatically). Change one thing at a time.
+- [ ] Run only the best variant once on `eval_sample.csv` with `--examples-file data/few_shot_curated.csv`,
+      upload `llm_results.jsonl` again, and rerun `05_compare_results`. That is your reported result.
 
 ## Weekend 3: scam extraction (part 2)
 - [ ] Run `06_scam_candidates`; download the input file and the label sheet.

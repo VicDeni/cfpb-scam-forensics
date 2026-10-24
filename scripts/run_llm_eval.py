@@ -6,9 +6,18 @@ Run on your laptop after notebook 04 (needs ANTHROPIC_API_KEY):
     python scripts/run_llm_eval.py --limit 50         # small test run
     python scripts/run_llm_eval.py                    # full run
 
-Results are appended to results/llm_results.jsonl, one line per complaint per
-prompt variant. The run is resumable: rerunning skips anything already done for
-the same prompt version and model, and retries rows that errored.
+Prompt variants: zero_shot, few_shot, and the same two with "_rules" added
+(routing rules written after error analysis). Try new prompts on the practice
+set from notebook 04b first, so the final score on eval_sample.csv stays fair:
+
+    python scripts/run_llm_eval.py --eval-file data/dev_sample.csv \
+        --out results/dev_results.jsonl \
+        --examples-file data/few_shot_curated.csv \
+        --variants zero_shot zero_shot_rules few_shot few_shot_rules
+
+Results are appended to the --out file, one line per complaint per prompt
+variant. The run is resumable: rerunning skips anything already done for the
+same prompt version and model, and retries rows that errored.
 """
 
 import argparse
@@ -27,13 +36,16 @@ from complaint_kit import evaluate, llm, prompts  # noqa: E402
 from complaint_kit.batch import load_jsonl, run_jobs  # noqa: E402
 
 
+VARIANTS = ["zero_shot", "few_shot", "zero_shot_rules", "few_shot_rules"]
+
+
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--eval-file", default=str(ROOT / "data" / "eval_sample.csv"))
     p.add_argument("--examples-file", default=str(ROOT / "data" / "few_shot_examples.csv"))
     p.add_argument("--out", default=str(ROOT / "results" / "llm_results.jsonl"))
     p.add_argument("--variants", nargs="+", default=["zero_shot", "few_shot"],
-                   choices=["zero_shot", "few_shot"])
+                   choices=VARIANTS)
     p.add_argument("--model", default=llm.DEFAULT_MODEL)
     p.add_argument("--limit", type=int, help="only the first N complaints (for a test run)")
     p.add_argument("--workers", type=int, default=4, help="parallel API calls")
@@ -45,11 +57,28 @@ def build_variants(names, examples_file):
     variants = {}
     for name in names:
         examples = None
-        if name == "few_shot":
+        if name.startswith("few_shot"):
             examples = pd.read_csv(examples_file).to_dict("records")
-        system = prompts.build_system_prompt(examples)
+        system = prompts.build_system_prompt(examples, rules=name.endswith("_rules"))
         variants[name] = {"system": system, "version": prompts.prompt_version(name, system)}
     return variants
+
+
+def per_class_report(out_path, variants, model):
+    """F1 by product for each variant, plus the most common mistakes."""
+    records = pd.DataFrame(load_jsonl(out_path))
+    if not len(records):
+        return None, None
+    f1_cols, mistakes = {}, []
+    for name, v in variants.items():
+        r = records[(records.prompt_version == v["version"]) & (records.model == model)]
+        if not len(r):
+            continue
+        f1_cols[name] = {row["label"]: round(row["f1"], 3)
+                         for row in evaluate.per_class(r.true_label, r.predicted)}
+        mistakes += [{"variant": name, **m}
+                     for m in evaluate.top_confusions(r.true_label, r.predicted, k=6)]
+    return pd.DataFrame(f1_cols), pd.DataFrame(mistakes)
 
 
 def summarize_file(out_path, variants, model):
@@ -115,7 +144,11 @@ def main(argv=None, client=None):
 
     summary = summarize_file(args.out, variants, args.model)
     print("\n" + pd.DataFrame(summary).to_string(index=False))
-    with open(Path(args.out).with_name("llm_summary.json"), "w") as f:
+    f1_table, mistakes = per_class_report(args.out, variants, args.model)
+    if f1_table is not None and len(f1_table):
+        print("\nF1 by product:\n" + f1_table.to_string())
+        print("\nMost common mistakes:\n" + mistakes.to_string(index=False))
+    with open(Path(args.out).with_suffix(".summary.json"), "w") as f:
         json.dump(summary, f, indent=2)
     return summary
 
