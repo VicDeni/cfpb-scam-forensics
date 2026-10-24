@@ -31,7 +31,8 @@ choice, and the README's "Design choices" section is your cheat sheet.
 
 ## Weekend 3: scam extraction (part 2)
 - [ ] Run `06_scam_candidates`; download the input file and the label sheet.
-- [ ] Read `docs/labeling_guide.md`, then label the 120 rows (about 2–3 hours). Don't run the
+- [ ] Read `docs/labeling_guide.md`, then label the 120 rows with `python scripts/label_scams.py`
+      (about 2–3 hours; it saves as you go, so split it into sessions). Don't run the
       model first: seeing its answers biases your labels.
 - [ ] `run_scam_extraction.py --dry-run`, then `--limit 30`, and read those 30 outputs closely.
 - [ ] Full run, then `score_scam_labels.py`. Read every row of `scam_disagreements.csv` and sort them:

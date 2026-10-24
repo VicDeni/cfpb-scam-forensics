@@ -279,8 +279,10 @@ def labeling_guide_markdown() -> str:
         "**Label every row before you look at any model output.** Seeing the model's answer "
         "first biases you toward agreeing with it, which makes its accuracy look better than it is.",
         "",
-        "Type values exactly as written below (copy and paste is fine). Leave a cell blank if "
-        "you skip it; blanks aren't scored. Use the `notes` column for anything ambiguous: those "
+        "The easiest way to label is `python scripts/label_scams.py`, which shows one complaint "
+        "at a time, lets you pick each value by number, applies the rules below for you, and "
+        "saves as you go. If you edit the sheet by hand instead, type values exactly as written "
+        "below. Blank cells are skipped when scoring. Use `notes` for anything ambiguous: those "
         "cases are good material for the error analysis.",
         "",
         "## Rules",

@@ -120,3 +120,64 @@ def test_labeling_guide_doc_is_up_to_date():
     from pathlib import Path
     doc = Path(__file__).resolve().parents[1] / "docs" / "labeling_guide.md"
     assert doc.read_text() == scam.labeling_guide_markdown()
+
+
+def _labeler():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import label_scams
+    return label_scams
+
+
+def _sheet(tmp_path, n=3):
+    import pandas as pd
+    path = tmp_path / "sheet.csv"
+    cols = {f: [""] * n for f in list(scam.FIELDS) + [scam.AMOUNT_FIELD, "notes"]}
+    pd.DataFrame({"complaint_id": list(range(1, n + 1)), "text": [f"complaint {i}" for i in range(n)], **cols}).to_csv(path, index=False)
+    return path
+
+
+def test_labeler_applies_rules_saves_and_resumes(tmp_path):
+    import pandas as pd
+    label_scams = _labeler()
+    path = _sheet(tmp_path)
+    answers = iter([
+        "3", "",                                   # 1: not_fraud, no note
+        "9", "1", "1", "1", "1", "3", "$2,500", "u",  # 2: invalid answer, then answers, then undo at notes
+        "1", "1", "1", "1", "3", "2500", "phone scam",          # 2 again
+        "q",                                       # quit before 3
+    ])
+    label_scams.main(["--sheet", str(path)], input_fn=lambda _: next(answers))
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    assert df.loc[0, "fraud_type"] == "not_fraud" and df.loc[0, "payment_method"] == scam.NA
+    assert df.loc[0, scam.AMOUNT_FIELD] == "none"
+    row = df.loc[1]
+    assert (row.fraud_type, row.scam_type, row.contact_channel, row.payment_method, row.refund_status) == (
+        "authorized_scam", "bank_impersonation", "phone_call", "zelle", "denied")
+    assert row[scam.AMOUNT_FIELD] == "2500.00" and row.notes == "phone scam"
+    assert df.loc[2, "fraud_type"] == ""
+
+    # resume: only complaint 3 is asked; unauthorized skips scam_type and contact_channel
+    answers = iter(["2", "5", "1", "", ""])
+    label_scams.main(["--sheet", str(path)], input_fn=lambda _: next(answers))
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    row = df.loc[2]
+    assert (row.fraud_type, row.scam_type, row.payment_method, row.refund_status, row[scam.AMOUNT_FIELD]) == (
+        "unauthorized_transaction", scam.NA, "card", "refunded_full", "none")
+
+    # every labeled row follows the rules and scores cleanly
+    for _, r in df.iterrows():
+        parsed = {f: scam.normalize_value(f, r[f]) for f in scam.FIELDS}
+        parsed[scam.AMOUNT_FIELD] = scam.parse_amount(r[scam.AMOUNT_FIELD])[0]
+        assert scam.is_consistent(parsed)
+
+
+def test_labeler_skip_leaves_row_blank(tmp_path):
+    import pandas as pd
+    label_scams = _labeler()
+    path = _sheet(tmp_path, n=2)
+    answers = iter(["s", "3", ""])
+    label_scams.main(["--sheet", str(path)], input_fn=lambda _: next(answers))
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    assert df.fraud_type.tolist() == ["", "not_fraud"]
