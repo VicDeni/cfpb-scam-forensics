@@ -1,0 +1,50 @@
+[
+  {
+    "variant": "zero_shot",
+    "prompt_version": "zero_shot-639475c4",
+    "model": "claude-haiku-5-5",
+    "n": 1100,
+    "accuracy": 0.72,
+    "macro_f1": 0.72116269216572,
+    "parse_error_rate": 0.0036363636363636364,
+    "avg_input_tokens": 958.6581818181818,
+    "avg_output_tokens": 14.49909090909091,
+    "cost_per_1k_usd": 0.10311536363636366
+  },
+  {
+    "variant": "zero_shot_rules",
+    "prompt_version": "zero_shot_rules-e7b79bd6",
+    "model": "claude-haiku-5-5",
+    "n": 1100,
+    "accuracy": 0.7436363636363637,
+    "macro_f1": 0.7427169199986181,
+    "parse_error_rate": 0.007272727272727273,
+    "avg_input_tokens": 1231.658181818182,
+    "avg_output_tokens": 14.9,
+    "cost_per_1k_usd": 0.1306158181818182
+  },
+  {
+    "variant": "few_shot",
+    "prompt_version": "few_shot-957373d7",
+    "model": "claude-haiku-5-5",
+    "n": 1100,
+    "accuracy": 0.7245454545454545,
+    "macro_f1": 0.7271608316581767,
+    "parse_error_rate": 0.0018181818181818182,
+    "avg_input_tokens": 2793.6581818181817,
+    "avg_output_tokens": 14.200909090909091,
+    "cost_per_1k_usd": 0.28646627272727276
+  },
+  {
+    "variant": "few_shot_rules",
+    "prompt_version": "few_shot_rules-a35ba1ce",
+    "model": "claude-haiku-5-5",
+    "n": 1100,
+    "accuracy": 0.7445454545454545,
+    "macro_f1": 0.7416831943731226,
+    "parse_error_rate": 0.0009090909090909091,
+    "avg_input_tokens": 3066.6581818181817,
+    "avg_output_tokens": 14.172727272727272,
+    "cost_per_1k_usd": 0.3137521818181818
+  }
+]

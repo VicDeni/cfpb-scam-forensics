@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "zero_shot_rules",
+    "prompt_version": "zero_shot_rules-e7b79bd6",
+    "model": "claude-haiku-5-5",
+    "n": 2200,
+    "accuracy": 0.715,
+    "macro_f1": 0.7113237387079623,
+    "parse_error_rate": 0.008636363636363636,
+    "avg_input_tokens": 1270.7022727272727,
+    "avg_output_tokens": 14.854545454545455,
+    "cost_per_1k_usd": 0.1344975
+  }
+]
